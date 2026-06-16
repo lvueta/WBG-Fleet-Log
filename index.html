@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#002244">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DriverLog">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Vehicle &amp; Driver Log</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#002244;--navy2:#00356b;--gold:#F5A623;
+  --bg:#F0F2F7;--white:#fff;--text:#111827;--muted:#6B7280;
+  --border:#E5E7EB;--success:#10B981;--danger:#EF4444;--warn:#F59E0B;
+  --shadow:0 1px 6px rgba(0,0,0,.08);--r:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* ── Header ── */
+.hdr{background:var(--navy);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.hdr-ico{width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hdr-txt h1{font-size:15px;font-weight:700;line-height:1.2}
+.hdr-txt p{font-size:11px;opacity:.65;margin-top:1px}
+.hdr-drv{margin-left:auto;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.3);color:#fff;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis}
+
+/* ── Nav ── */
+.nav{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom,0)}
+.nbi{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px 8px;border:none;background:none;color:var(--muted);font-size:10px;font-weight:500;cursor:pointer;gap:3px;transition:color .15s}
+.nbi.active{color:var(--navy)}
+.nbi svg{width:22px;height:22px}
+
+/* ── Content ── */
+.content{padding:14px;padding-bottom:calc(68px + env(safe-area-inset-bottom,0))}
+.page{display:none}.page.active{display:block}
+
+/* ── Cards / sections ── */
+.card{background:var(--white);border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.sec{background:var(--white);border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.sec-ttl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--navy);margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #EEF2FF}
+
+/* ── Banner ── */
+.banner{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 100%);color:#fff;border-radius:var(--r);padding:18px;margin-bottom:12px}
+.banner h2{font-size:19px;font-weight:800}
+.banner p{font-size:13px;opacity:.8;margin-top:4px}
+.banner-meta{font-size:11px;opacity:.55;margin-top:10px;display:flex;align-items:center;gap:4px}
+
+/* ── Stats ── */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat{background:var(--white);border-radius:var(--r);padding:14px;box-shadow:var(--shadow);text-align:center}
+.stat-v{font-size:26px;font-weight:900;color:var(--navy)}
+.stat-l{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── Quick actions ── */
+.qa{display:flex;align-items:center;gap:12px;background:var(--white);border:none;border-radius:var(--r);padding:14px 16px;margin-bottom:10px;width:100%;cursor:pointer;box-shadow:var(--shadow);text-align:left}
+.qa-ico{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.qa-ico.blue{background:#EFF6FF}.qa-ico.green{background:#ECFDF5}.qa-ico.orange{background:#FFF7ED}
+.qa-txt strong{display:block;font-size:14px;font-weight:700}
+.qa-txt span{font-size:12px;color:var(--muted)}
+.qa-arr{margin-left:auto;color:#D1D5DB}
+
+/* ── Form ── */
+.field{margin-bottom:13px}.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:5px}
+.req{color:var(--danger);margin-left:1px}
+.auto-badge{font-size:10px;font-weight:600;background:#ECFDF5;color:var(--success);padding:1px 6px;border-radius:10px;margin-left:4px}
+.field input,.field select{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:8px;font-size:16px;font-family:inherit;background:#fff;color:var(--text);-webkit-appearance:none;transition:border .15s,box-shadow .15s}
+.field input:focus,.field select:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(0,34,68,.1)}
+.field input.auto{background:#F8FAFC;color:var(--muted);font-weight:600}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ── Buttons ── */
+.btn{width:100%;padding:14px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.btn:active{opacity:.82}
+.btn-p{background:var(--navy);color:#fff}
+.btn-s{background:#EFF6FF;color:var(--navy)}
+.btn-ok{background:var(--success);color:#fff}
+.btn-d{background:var(--danger);color:#fff}
+.gap{height:10px}
+
+/* ── History entries ── */
+.ec{background:var(--white);border-radius:10px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.ec-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.ec-date{font-size:13px;font-weight:800}
+.ec-drv{font-size:12px;color:var(--muted);margin-top:1px}
+.ec-veh{font-size:11px;font-weight:700;background:#EFF6FF;color:var(--navy);padding:3px 9px;border-radius:10px}
+.ec-det{font-size:12px;color:var(--muted);line-height:1.8}
+.ec-det strong{color:var(--text)}
+.ec-ft{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.ec-stats{display:flex;gap:14px}
+.ec-stat{font-size:11px;color:var(--muted)}
+.ec-stat strong{color:var(--text);font-size:13px;display:block}
+.btn-del{background:none;border:1px solid var(--danger);color:var(--danger);padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer}
+
+/* ── Empty state ── */
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty svg{width:52px;height:52px;margin-bottom:14px;opacity:.35}
+.empty h3{font-size:16px;font-weight:700;color:#374151;margin-bottom:6px}
+.empty p{font-size:13px}
+
+/* ── Export ── */
+.info-box{background:#EFF6FF;border-radius:8px;padding:12px;font-size:13px;color:#1e40af;margin-bottom:14px;line-height:1.6}
+.info-box strong{display:block;margin-bottom:2px}
+
+/* ── Modal ── */
+.mbk{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:none;align-items:flex-end}
+.mbk.show{display:flex}
+.modal{background:var(--white);border-radius:20px 20px 0 0;padding:22px;width:100%}
+.modal h2{font-size:17px;font-weight:800;margin-bottom:14px}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:82px;left:50%;transform:translateX(-50%) translateY(10px);background:#111827;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:300;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── iOS install note ── */
+.ios-note{background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px;color:#92400E;display:none}
+.ios-note strong{display:block;margin-bottom:3px}
+
+/* ── Page title ── */
+.pg-ttl{font-size:19px;font-weight:900;margin-bottom:3px}
+.pg-sub{font-size:13px;color:var(--muted);margin-bottom:14px}
+
+/* ── Count badge ── */
+.count-msg{font-size:13px;color:var(--muted);margin-bottom:14px;font-weight:500}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-ico">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+      <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+    </svg>
+  </div>
+  <div class="hdr-txt"><h1>Vehicle &amp; Driver Log</h1><p>World Bank Group · Suva, Fiji</p></div>
+  <button class="hdr-drv" id="hdrDrv" onclick="showDriverModal()">Select Driver ▾</button>
+</header>
+
+<main class="content">
+
+<!-- ── HOME ─────────────────────────────────────────── -->
+<div class="page active" id="page-home">
+
+  <div class="ios-note" id="iosNote">
+    <strong>📲 Add to your Home Screen</strong>
+    Tap the Share button in Safari, then "Add to Home Screen" to install this app.
+  </div>
+
+  <div class="banner">
+    <h2 id="greet">Good morning! 👋</h2>
+    <p id="drvBanner">Select your name above to get started</p>
+    <div class="banner-meta">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5C3.89 4 3 4.9 3 6v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>
+      <span id="todayLbl"></span>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="sTrips">0</div><div class="stat-l">Trips This Month</div></div>
+    <div class="stat"><div class="stat-v" id="sKm">0</div><div class="stat-l">km This Month</div></div>
+    <div class="stat"><div class="stat-v" id="sFuel">0</div><div class="stat-l">Litres Fuel</div></div>
+    <div class="stat"><div class="stat-v" id="sHrs">0</div><div class="stat-l">Driving Hours</div></div>
+  </div>
+
+  <button class="qa" onclick="gotoLog()">
+    <div class="qa-ico blue"><svg width="20" height="20" viewBox="0 0 24 24" fill="#2563EB"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg></div>
+    <div class="qa-txt"><strong>New Log Entry</strong><span>Record a trip or fuel fill-up</span></div>
+    <div class="qa-arr"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></div>
+  </button>
+
+  <button class="qa" onclick="showPage('history')">
+    <div class="qa-ico green"><svg width="20" height="20" viewBox="0 0 24 24" fill="#10B981"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg></div>
+    <div class="qa-txt"><strong>View History</strong><span>Browse past log entries</span></div>
+    <div class="qa-arr"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></div>
+  </button>
+
+  <button class="qa" onclick="showPage('export')">
+    <div class="qa-ico orange"><svg width="20" height="20" viewBox="0 0 24 24" fill="#D97706"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg></div>
+    <div class="qa-txt"><strong>Export to CSV</strong><span>Download data for your Excel sheet</span></div>
+    <div class="qa-arr"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></div>
+  </button>
+
+</div>
+
+<!-- ── NEW ENTRY ─────────────────────────────────────── -->
+<div class="page" id="page-log">
+  <div class="pg-ttl">New Log Entry</div>
+  <div class="pg-sub">Fill in trip details below</div>
+
+  <!-- Trip info -->
+  <div class="sec">
+    <div class="sec-ttl">📅 Trip Details</div>
+    <div class="r2">
+      <div class="field">
+        <label>Date <span class="req">*</span></label>
+        <input type="date" id="fDate" onchange="onDateChange()">
+      </div>
+      <div class="field">
+        <label>Week No. <span class="auto-badge">auto</span></label>
+        <input type="text" id="fWeek" class="auto" readonly placeholder="—">
+      </div>
+    </div>
+    <div class="field">
+      <label>Day <span class="auto-badge">auto</span></label>
+      <input type="text" id="fDay" class="auto" readonly placeholder="—">
+    </div>
+    <div class="field">
+      <label>Driver Name <span class="req">*</span></label>
+      <select id="fDriver">
+        <option value="">— Select driver —</option>
+        <option value="Jesoni Tagicakiverata">Jesoni Tagicakiverata</option>
+<option value="Apaitia Tuvono">Apaitia Tuvono</option>
+<option value="Taraivini Sydney">Taraivini Sydney</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Vehicle / Plate <span class="req">*</span></label>
+      <select id="fVehicle">
+        <option value="">— Select vehicle —</option>
+        <option value="WB1">WB1</option>
+<option value="WB2">WB2</option>
+<option value="IFC1">IFC1</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Unit Requesting Transport</label>
+      <input type="text" id="fUnit" placeholder="e.g. EAPF1, CMU, Treasury…">
+    </div>
+    <div class="field">
+      <label>Purpose / Destination <span class="req">*</span></label>
+      <input type="text" id="fPurpose" placeholder="e.g. Airport run, Site visit…">
+    </div>
+  </div>
+
+  <!-- Odometer -->
+  <div class="sec">
+    <div class="sec-ttl">🛣️ Odometer &amp; Distance</div>
+    <div class="r2">
+      <div class="field">
+        <label>Odometer Start (km) <span class="req">*</span></label>
+        <input type="number" id="fOdoStart" placeholder="0" inputmode="decimal" oninput="calcDist()">
+      </div>
+      <div class="field">
+        <label>Odometer End (km) <span class="req">*</span></label>
+        <input type="number" id="fOdoEnd" placeholder="0" inputmode="decimal" oninput="calcDist()">
+      </div>
+    </div>
+    <div class="field">
+      <label>Distance (km) <span class="auto-badge">auto</span></label>
+      <input type="text" id="fDist" class="auto" readonly placeholder="—">
+    </div>
+  </div>
+
+  <!-- Fuel -->
+  <div class="sec">
+    <div class="sec-ttl">⛽ Fuel</div>
+    <div class="r2">
+      <div class="field">
+        <label>Fuel Issued (Litres)</label>
+        <input type="number" id="fFuelL" placeholder="0.00" inputmode="decimal" step="0.01">
+      </div>
+      <div class="field">
+        <label>Fuel Cost (FJD)</label>
+        <input type="number" id="fFuelC" placeholder="0.00" inputmode="decimal" step="0.01">
+      </div>
+    </div>
+  </div>
+
+  <!-- Time -->
+  <div class="sec">
+    <div class="sec-ttl">⏱️ Time</div>
+    <div class="r2">
+      <div class="field">
+        <label>Time Out <span class="req">*</span></label>
+        <input type="time" id="fTout" oninput="calcHrs()">
+      </div>
+      <div class="field">
+        <label>Time In <span class="req">*</span></label>
+        <input type="time" id="fTin" oninput="calcHrs()">
+      </div>
+    </div>
+    <div class="r2">
+      <div class="field">
+        <label>Total Driving Hrs <span class="auto-badge">auto</span></label>
+        <input type="text" id="fTotHrs" class="auto" readonly placeholder="—">
+      </div>
+      <div class="field">
+        <label>Regular Hrs <span class="auto-badge">auto</span></label>
+        <input type="text" id="fRegHrs" class="auto" readonly placeholder="—">
+      </div>
+    </div>
+    <div class="field">
+      <label>Overtime Hrs <span class="auto-badge">auto</span></label>
+      <input type="text" id="fOTHrs" class="auto" readonly placeholder="—">
+    </div>
+  </div>
+
+  <button class="btn btn-p" onclick="saveEntry()">✓ Save Log Entry</button>
+  <div class="gap"></div>
+  <button class="btn btn-s" onclick="clearForm()">✕ Clear Form</button>
+</div>
+
+<!-- ── HISTORY ────────────────────────────────────────── -->
+<div class="page" id="page-history">
+  <div class="pg-ttl">Log History</div>
+  <div class="pg-sub">All recorded trips on this device</div>
+  <div id="histList"></div>
+</div>
+
+<!-- ── EXPORT ─────────────────────────────────────────── -->
+<div class="page" id="page-export">
+  <div class="pg-ttl">Export Data</div>
+  <div class="pg-sub">Download entries for your Excel sheet</div>
+
+  <div class="sec">
+    <div class="info-box">
+      <strong>How to use:</strong>
+      Download the CSV file, then open your <em>Drivers Log and Tracker.xlsx</em>, go to the <strong>Daily Log</strong> sheet, and paste from row 5 onward. Columns match your sheet exactly.
+    </div>
+
+    <div class="field" style="margin-bottom:12px">
+      <label>Filter by Month</label>
+      <select id="exMonth"><option value="all">All records</option></select>
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label>Filter by Driver</label>
+      <select id="exDriver">
+        <option value="all">All drivers</option>
+        <option value="Jesoni Tagicakiverata">Jesoni Tagicakiverata</option>
+<option value="Apaitia Tuvono">Apaitia Tuvono</option>
+<option value="Taraivini Sydney">Taraivini Sydney</option>
+      </select>
+    </div>
+    <div class="count-msg" id="exCount">0 records ready to export</div>
+    <button class="btn btn-ok" onclick="doExport()">⬇ Download CSV</button>
+  </div>
+
+  <div class="sec">
+    <div class="sec-ttl" style="color:var(--danger)">⚠️ Danger Zone</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Remove <strong>all</strong> saved entries from this device. Export first — this cannot be undone.</p>
+    <button class="btn btn-d" onclick="clearAll()">Clear All Entries</button>
+  </div>
+</div>
+
+</main>
+
+<!-- ── Bottom nav ──────────────────────────────────────── -->
+<nav class="nav">
+  <button class="nbi active" id="nb-home" onclick="showPage('home')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home
+  </button>
+  <button class="nbi" id="nb-log" onclick="gotoLog()">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>New Entry
+  </button>
+  <button class="nbi" id="nb-history" onclick="showPage('history')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>History
+  </button>
+  <button class="nbi" id="nb-export" onclick="showPage('export')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>Export
+  </button>
+</nav>
+
+<!-- ── Driver modal ────────────────────────────────────── -->
+<div class="mbk" id="drvModal">
+  <div class="modal">
+    <h2>Select Your Name</h2>
+    <div class="field">
+      <select id="modalDrv" style="font-size:16px;padding:14px">
+        <option value="">— Choose your name —</option>
+        <option value="Jesoni Tagicakiverata">Jesoni Tagicakiverata</option>
+<option value="Apaitia Tuvono">Apaitia Tuvono</option>
+<option value="Taraivini Sydney">Taraivini Sydney</option>
+      </select>
+    </div>
+    <div class="gap"></div>
+    <button class="btn btn-p" onclick="confirmDriver()">Confirm</button>
+    <div class="gap"></div>
+    <button class="btn btn-s" onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- ── Toast ───────────────────────────────────────────── -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── Constants ─────────────────────────────────────────
+const STD_HRS = 8;
+
+// ─── Storage ────────────────────────────────────────────
+const store = {
+  get: () => { try { return JSON.parse(localStorage.getItem('dlogs')||'[]'); } catch{ return []; } },
+  set: d => localStorage.setItem('dlogs', JSON.stringify(d)),
+  driver: () => localStorage.getItem('curDriver')||'',
+  setDriver: n => localStorage.setItem('curDriver', n),
+};
+
+// ─── Init ───────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initDate();
+  renderHome();
+  populateMonths();
+
+  const d = store.driver();
+  if (d) {
+    document.getElementById('hdrDrv').textContent = d.split(' ')[0] + ' ▾';
+    document.getElementById('fDriver').value = d;
+  } else {
+    setTimeout(showDriverModal, 600);
+  }
+
+  document.getElementById('exMonth').addEventListener('change', updateCount);
+  document.getElementById('exDriver').addEventListener('change', updateCount);
+  updateCount();
+
+  // iOS detection for install hint
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.navigator.standalone;
+  if (isIOS) document.getElementById('iosNote').style.display = 'block';
+});
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+// ─── Navigation ─────────────────────────────────────────
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.nbi').forEach(x => x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.getElementById('nb-'+p).classList.add('active');
+  if (p==='history') renderHistory();
+  if (p==='home') renderHome();
+  if (p==='export') { populateMonths(); updateCount(); }
+  window.scrollTo(0,0);
+}
+
+function gotoLog() {
+  showPage('log');
+  if (!document.getElementById('fDriver').value) {
+    const d = store.driver();
+    if (d) document.getElementById('fDriver').value = d;
+  }
+}
+
+// ─── Home ───────────────────────────────────────────────
+function renderHome() {
+  const now = new Date();
+  const d = store.driver();
+  const h = now.getHours();
+  const greet = h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  document.getElementById('greet').textContent = greet + ', ' + (d ? d.split(' ')[0] : 'there') + ' 👋';
+  document.getElementById('drvBanner').textContent = d || 'Select your name above to get started';
+  document.getElementById('todayLbl').textContent = now.toLocaleDateString('en-FJ',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  const all = store.get();
+  const ym = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const mo = all.filter(e => e.date && e.date.startsWith(ym));
+  document.getElementById('sTrips').textContent = mo.length;
+  document.getElementById('sKm').textContent = Math.round(mo.reduce((s,e)=>s+(+e.dist||0),0));
+  document.getElementById('sFuel').textContent = mo.reduce((s,e)=>s+(+e.fuelL||0),0).toFixed(1);
+  document.getElementById('sHrs').textContent = mo.reduce((s,e)=>s+(+e.totHrs||0),0).toFixed(1);
+}
+
+// ─── Date ───────────────────────────────────────────────
+function initDate() {
+  const t = new Date().toISOString().split('T')[0];
+  document.getElementById('fDate').value = t;
+  onDateChange();
+}
+
+function onDateChange() {
+  const v = document.getElementById('fDate').value;
+  if (!v) return;
+  const d = new Date(v+'T12:00:00');
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  document.getElementById('fDay').value = days[d.getDay()];
+  document.getElementById('fWeek').value = 'Week '+Math.ceil(d.getDate()/7);
+}
+
+// ─── Calculations ────────────────────────────────────────
+function calcDist() {
+  const s = +document.getElementById('fOdoStart').value||0;
+  const e = +document.getElementById('fOdoEnd').value||0;
+  document.getElementById('fDist').value = e>=s && (s||e) ? (e-s).toFixed(1) : '';
+}
+
+function calcHrs() {
+  const to = document.getElementById('fTout').value;
+  const ti = document.getElementById('fTin').value;
+  if (!to||!ti) return;
+  const [oh,om] = to.split(':').map(Number);
+  const [ih,im] = ti.split(':').map(Number);
+  let mins = (ih*60+im)-(oh*60+om);
+  if (mins<0) mins+=1440;
+  const tot = mins/60;
+  const reg = Math.min(STD_HRS, tot);
+  const ot = Math.max(0, tot-STD_HRS);
+  document.getElementById('fTotHrs').value = tot.toFixed(2);
+  document.getElementById('fRegHrs').value = reg.toFixed(2);
+  document.getElementById('fOTHrs').value = ot.toFixed(2);
+}
+
+// ─── Save ───────────────────────────────────────────────
+function saveEntry() {
+  const get = id => document.getElementById(id).value.trim();
+  const req = [['fDate','Date'],['fDriver','Driver Name'],['fVehicle','Vehicle'],['fPurpose','Purpose / Destination'],['fTout','Time Out'],['fTin','Time In'],['fOdoStart','Odometer Start'],['fOdoEnd','Odometer End']];
+  for (const [id,lbl] of req) {
+    if (!get(id)) { toast('⚠️ '+lbl+' is required'); return; }
+  }
+  const entry = {
+    id: Date.now(),
+    date: get('fDate'), week: get('fWeek'), day: get('fDay'),
+    driver: get('fDriver'), vehicle: get('fVehicle'),
+    unit: get('fUnit'), purpose: get('fPurpose'),
+    odoStart: get('fOdoStart'), odoEnd: get('fOdoEnd'), dist: get('fDist'),
+    fuelL: get('fFuelL'), fuelC: get('fFuelC'),
+    tout: get('fTout'), tin: get('fTin'),
+    totHrs: get('fTotHrs'), regHrs: get('fRegHrs'), otHrs: get('fOTHrs'),
+  };
+  const logs = store.get();
+  logs.unshift(entry);
+  store.set(logs);
+  toast('✓ Entry saved!');
+  clearForm();
+  showPage('home');
+}
+
+// ─── Clear ──────────────────────────────────────────────
+function clearForm() {
+  ['fUnit','fPurpose','fOdoStart','fOdoEnd','fFuelL','fFuelC','fTout','fTin'].forEach(id=>{document.getElementById(id).value=''});
+  ['fDist','fTotHrs','fRegHrs','fOTHrs'].forEach(id=>{document.getElementById(id).value=''});
+  document.getElementById('fVehicle').value='';
+  initDate();
+  const d=store.driver(); if(d) document.getElementById('fDriver').value=d;
+}
+
+// ─── History ─────────────────────────────────────────────
+function renderHistory() {
+  const logs = store.get();
+  const c = document.getElementById('histList');
+  if (!logs.length) {
+    c.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg><h3>No entries yet</h3><p>Tap "New Entry" to log your first trip</p></div>`;
+    return;
+  }
+  c.innerHTML = logs.map(e=>`
+    <div class="ec">
+      <div class="ec-hdr">
+        <div><div class="ec-date">${fmtDate(e.date)} · ${e.day||''}</div><div class="ec-drv">${e.driver}</div></div>
+        <span class="ec-veh">${e.vehicle}</span>
+      </div>
+      <div class="ec-det">
+        ${e.purpose?`<div>📍 <strong>${e.purpose}</strong></div>`:''}
+        ${e.unit?`<div>🏢 ${e.unit}</div>`:''}
+        <div>🛣️ ${e.dist||'—'} km &nbsp;·&nbsp; ⏱️ ${e.tout||'—'} → ${e.tin||'—'}</div>
+        ${+e.fuelL?`<div>⛽ ${e.fuelL} L &nbsp;·&nbsp; FJD ${e.fuelC}</div>`:''}
+      </div>
+      <div class="ec-ft">
+        <div class="ec-stats">
+          <div class="ec-stat"><strong>${e.totHrs||'—'}</strong>Total hrs</div>
+          <div class="ec-stat"><strong>${e.regHrs||'—'}</strong>Reg hrs</div>
+          <div class="ec-stat"><strong>${e.otHrs||'0.00'}</strong>OT hrs</div>
+        </div>
+        <button class="btn-del" onclick="delEntry(${e.id})">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+function delEntry(id) {
+  if (!confirm('Delete this entry?')) return;
+  store.set(store.get().filter(e=>e.id!==id));
+  renderHistory();
+  toast('Entry deleted');
+}
+
+function fmtDate(s) {
+  if (!s) return '';
+  return new Date(s+'T12:00:00').toLocaleDateString('en-FJ',{day:'numeric',month:'short',year:'numeric'});
+}
+
+// ─── Driver modal ────────────────────────────────────────
+function showDriverModal() { document.getElementById('drvModal').classList.add('show'); const d=store.driver(); if(d) document.getElementById('modalDrv').value=d; }
+function closeModal() { document.getElementById('drvModal').classList.remove('show'); }
+function confirmDriver() {
+  const v = document.getElementById('modalDrv').value;
+  if (!v) { toast('Please select your name'); return; }
+  store.setDriver(v);
+  document.getElementById('hdrDrv').textContent = v.split(' ')[0]+' ▾';
+  document.getElementById('fDriver').value = v;
+  closeModal(); renderHome();
+}
+
+// ─── Export ──────────────────────────────────────────────
+function populateMonths() {
+  const months = [...new Set(store.get().map(e=>e.date?e.date.slice(0,7):null).filter(Boolean))].sort().reverse();
+  const sel = document.getElementById('exMonth');
+  sel.innerHTML = '<option value="all">All records</option>' + months.map(m=>{
+    const [y,mo] = m.split('-');
+    const lbl = new Date(+y,+mo-1,1).toLocaleDateString('en-FJ',{month:'long',year:'numeric'});
+    return `<option value="${m}">${lbl}</option>`;
+  }).join('');
+}
+
+function filtered() {
+  let d = store.get();
+  const mo = document.getElementById('exMonth').value;
+  const dr = document.getElementById('exDriver').value;
+  if (mo!=='all') d = d.filter(e=>e.date&&e.date.startsWith(mo));
+  if (dr!=='all') d = d.filter(e=>e.driver===dr);
+  return d.sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+function updateCount() {
+  const n = filtered().length;
+  document.getElementById('exCount').textContent = n+' record'+(n===1?'':'s')+' ready to export';
+}
+
+function doExport() {
+  const rows = filtered();
+  if (!rows.length) { toast('No data to export'); return; }
+  const hdr = ['Date','Week No.','Day','Driver Name','Vehicle / Plate','Unit Requesting Transport','Purpose / Destination','Odometer Start (km)','Odometer End (km)','Distance (km)','Fuel Issued (Litres)','Fuel Cost (FJD)','Time Out','Time In','Total Driving Hrs','Regular Hrs','Overtime Hrs'];
+  const esc = v => '"'+(v||'').toString().replace(/"/g,'""')+'"';
+  const csv = [hdr.map(esc).join(','),...rows.map(e=>[e.date,e.week,e.day,e.driver,e.vehicle,e.unit,e.purpose,e.odoStart,e.odoEnd,e.dist,e.fuelL,e.fuelC,e.tout,e.tin,e.totHrs,e.regHrs,e.otHrs].map(esc).join(','))].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download = 'driver-log-'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();
+  toast('✓ CSV downloaded!');
+}
+
+function clearAll() {
+  if (!confirm('Delete ALL saved entries? Export first — this cannot be undone!')) return;
+  localStorage.removeItem('dlogs');
+  renderHistory(); renderHome(); toast('All data cleared');
+}
+
+// ─── Toast ───────────────────────────────────────────────
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
