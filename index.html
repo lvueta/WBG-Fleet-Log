@@ -269,6 +269,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     </div>
   </div>
 
+  <!-- Fuel Cost Estimator (optional helper) -->
+  <div class="sec">
+    <div class="sec-ttl">🧮 Fuel Cost Estimator <span class="auto-badge" style="background:#EEF2FF;color:#4338CA;">optional</span></div>
+    <p style="font-size:12px;color:#6B7280;margin:-6px 0 12px;">A quick estimate for planning. Your actual <b>Fuel Cost</b> above stays the official record.</p>
+    <div class="r2">
+      <div class="field">
+        <label>Diesel Price (FJD / Litre)</label>
+        <input type="number" id="fDiesel" value="4.58" inputmode="decimal" step="0.01" oninput="onEstInput()">
+      </div>
+      <div class="field">
+        <label>Consumption (L / 100 km)</label>
+        <input type="number" id="fConsume" value="12" inputmode="decimal" step="0.1" oninput="onEstInput()">
+      </div>
+    </div>
+    <div class="field">
+      <label>Estimated Fuel Cost (FJD) <span class="auto-badge">auto</span></label>
+      <input type="text" id="fEstCost" class="auto" readonly placeholder="—">
+    </div>
+    <button type="button" class="btn btn-s" style="margin-top:4px;" onclick="useEstimate()">↑ Use this as Fuel Cost</button>
+  </div>
+
   <!-- Time -->
   <div class="sec">
     <div class="sec-ttl">⏱️ Time</div>
@@ -418,6 +439,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // iOS detection for install hint
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.navigator.standalone;
   if (isIOS) document.getElementById('iosNote').style.display = 'block';
+
+  // Load saved estimator settings (diesel price & consumption)
+  const dp = localStorage.getItem('dieselPrice'); if (dp) document.getElementById('fDiesel').value = dp;
+  const cs = localStorage.getItem('consumption'); if (cs) document.getElementById('fConsume').value = cs;
 });
 
 // Register service worker
@@ -485,6 +510,29 @@ function calcDist() {
   const s = +document.getElementById('fOdoStart').value||0;
   const e = +document.getElementById('fOdoEnd').value||0;
   document.getElementById('fDist').value = e>=s && (s||e) ? (e-s).toFixed(1) : '';
+  calcEstimate();
+}
+
+// ─── Fuel cost estimator (optional helper) ───────────────
+function onEstInput() {
+  localStorage.setItem('dieselPrice', document.getElementById('fDiesel').value);
+  localStorage.setItem('consumption', document.getElementById('fConsume').value);
+  calcEstimate();
+}
+
+function calcEstimate() {
+  const dist = parseFloat(document.getElementById('fDist').value)||0;
+  const price = parseFloat(document.getElementById('fDiesel').value)||0;
+  const cons = parseFloat(document.getElementById('fConsume').value)||0;
+  const ok = dist>0 && price>0 && cons>0;
+  document.getElementById('fEstCost').value = ok ? (dist*(cons/100)*price).toFixed(2) : '';
+}
+
+function useEstimate() {
+  const v = document.getElementById('fEstCost').value;
+  if (!v) { toast('Enter distance, price & consumption first'); return; }
+  document.getElementById('fFuelC').value = v;
+  toast('✓ Estimate copied to Fuel Cost');
 }
 
 function calcHrs() {
@@ -531,7 +579,7 @@ function saveEntry() {
 // ─── Clear ──────────────────────────────────────────────
 function clearForm() {
   ['fUnit','fPurpose','fOdoStart','fOdoEnd','fFuelL','fFuelC','fTout','fTin'].forEach(id=>{document.getElementById(id).value=''});
-  ['fDist','fTotHrs','fRegHrs','fOTHrs'].forEach(id=>{document.getElementById(id).value=''});
+  ['fDist','fTotHrs','fRegHrs','fOTHrs','fEstCost'].forEach(id=>{document.getElementById(id).value=''});
   document.getElementById('fVehicle').value='';
   initDate();
   const d=store.driver(); if(d) document.getElementById('fDriver').value=d;
